@@ -48,8 +48,7 @@ def load_movies():
         title = movie_info[1][0:-7]
         released_at = movie_info[2]
         imdb_url = movie_info[3]
-       
-        print title
+
 
         if released_at:
             released_at = datetime.strptime(released_at, "%d-%b-%Y")
