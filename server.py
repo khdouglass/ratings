@@ -34,12 +34,59 @@ def user_list():
 
     users = User.query.all()
     return render_template("user_list.html", users=users)
+
 @app.route("/register")
 def register_form():
-    email = request.args.get("email")
-    password = request.args.get("password")
 
-    return render_template("register_form.html", email=email, password=password)
+    return render_template("register_form.html")
+
+@app.route("/register", methods=["POST"])
+def register_process():
+    """Process registration information"""
+
+    email = request.form.get("email")
+    print email
+    
+    password = request.form.get("password")
+    
+    emails = db.session.query(User.email).all()
+
+    if email not in emails:
+        new_user = User(email=email, password=password)
+    print new_user
+    db.session.add(new_user)
+    db.session.commit()
+
+
+    return redirect("/")
+@app.route("/login")
+def login():
+
+    return render_template("login.html")
+
+@app.route("/login", methods=["POST"])
+def login_submission():
+
+    email = request.form.get("email")
+    print type(email)
+    password = request.form.get("password")
+    print password
+
+    emails = db.session.query(User.email).all()
+    print type(emails[0])
+    
+    if (email,) in emails:
+        print "yes"
+        user = db.session.query(User).filter_by(email=email).one()
+        user_password = user.password 
+        if password == user_password:
+            session["user_id"] = user.user_id
+            print user_password    
+            flash("You are logged in!")
+
+    
+    return redirect("/")
+
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the
