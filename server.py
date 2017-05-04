@@ -3,7 +3,7 @@
 from jinja2 import StrictUndefined
 
 from flask import (Flask, render_template, redirect, request, flash,
-                   session)
+                   session, url_for)
 from flask_debugtoolbar import DebugToolbarExtension
 
 from model import User, Rating, Movie, connect_to_db, db
@@ -28,12 +28,42 @@ def index():
 
     return render_template("homepage.html")
 
+@app.route("/movies")
+def movie_list():
+    """Show list of movies."""
+
+    movies = Movie.query.order_by(Movie.title).all()
+    return render_template("movie_list.html", movies=movies)
+
+
 @app.route("/users")
 def user_list():
     """Show list of users."""
 
     users = User.query.all()
     return render_template("user_list.html", users=users)
+
+
+@app.route("/users/<user_id>")
+def show_user_info(user_id):
+    """Show information about user."""
+
+    user = User.query.get(user_id)
+    ratings = user.ratings
+
+    return render_template("user_info.html", user=user, ratings=ratings)
+
+@app.route("/movies/<movie_id>")
+def show_movie_info(movie_id):
+    """Show information about a movie."""
+
+    movie = Movie.query.get(movie_id)
+    
+
+    return render_template("movie_info.html", movie=movie)
+
+
+
 
 @app.route("/register")
 def register_form():
@@ -57,8 +87,8 @@ def register_process():
     db.session.add(new_user)
     db.session.commit()
 
-
     return redirect("/")
+
 @app.route("/login")
 def login():
 
@@ -74,18 +104,26 @@ def login_submission():
 
     emails = db.session.query(User.email).all()
     print type(emails[0])
-    
+
     if (email,) in emails:
-        print "yes"
         user = db.session.query(User).filter_by(email=email).one()
-        user_password = user.password 
+        user_password = user.password
         if password == user_password:
             session["user_id"] = user.user_id
-            print user_password    
             flash("You are logged in!")
 
-    
+    return redirect(url_for(".show_user_info", user_id=user.user_id))
+
+
+@app.route("/logout")
+def logout():
+    """User logout, remove user_id from session"""
+
+    del session["user_id"]
+
+    flash("You are logged out")
     return redirect("/")
+
 
 
 if __name__ == "__main__":
