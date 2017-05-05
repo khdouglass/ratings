@@ -53,16 +53,65 @@ def show_user_info(user_id):
 
     return render_template("user_info.html", user=user, ratings=ratings)
 
-@app.route("/movies/<movie_id>")
+@app.route("/movies/<int:movie_id>")
 def show_movie_info(movie_id):
     """Show information about a movie."""
 
     movie = Movie.query.get(movie_id)
-    
 
-    return render_template("movie_info.html", movie=movie)
+    user_id = session.get("user_id")
 
+    if user_id:
+            user_rating = Rating.query.filter_by(
+                movie_id = movie_id, user_id = user_id).first()
+    else:
+        user_rating = None
 
+    #Get average rating of movie
+
+    rating_scores = [rating.score for rating in movie.ratings]
+    avg_rating = float(sum(rating_scores))/len(rating_scores)
+
+    prediction = None
+
+    #Prediction code: only predict of the user hasn't rated it.
+
+    if (not user_rating) and user_id:
+        user = User.query.get(user_id)
+        if user:
+            prediction = user.predict_rating(movie)
+
+    return render_template(
+        "movie_info.html",
+        movie=movie,
+        user_rating=user_rating,
+        average=avg_rating,
+        prediction=prediction
+        )
+
+@app.route("/movies/<movie_id>", methods=["POST"])
+def rate_movie(movie_id):
+    """Rate a movie."""
+
+    user_rating = request.form.get("rating")
+ 
+    user_id = session.get("user_id")
+    if not user_id:
+        raise Exception("No user logged in.")
+
+    previous_rating = db.session.query(Rating).filter(movie_id == Rating.movie_id, user_id==Rating.user_id).first()
+
+    if previous_rating:
+        previous_rating.score = user_rating
+        db.session.add(previous_rating)
+    else:
+        new_rating = Rating(user_id=user_id, movie_id=movie_id, score=user_rating)
+        db.session.add(new_rating)
+
+    db.session.commit()
+
+    return redirect("/movies")
+    # return redirect("/movies/%s" % movie_id)
 
 
 @app.route("/register")
